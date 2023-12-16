@@ -1,0 +1,17 @@
+{
+  "name": "php-bundler",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lovedder1995/php-bundler.git"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lovedder1995/php-bundler/issues"
+  },
+  "homepage": "https://github.com/lovedder1995/php-bundler#readme",
+  "devDependencies": {
+    "standard": "^17.1.0"
+  }
+}
