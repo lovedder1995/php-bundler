@@ -25,7 +25,7 @@ const resoveModule = ({ file, moduleFilename }) => {
   if (!moduleFilename) return file
   moduleFilename = moduleFilename[0]
 
-  let moduleFile = readFileSync(moduleFilename, 'utf-8')
+  let moduleFile = readFileSync(moduleFilename, 'utf-8').replace('<?php\n', '')
 
   moduleFile = indentation({ file: moduleFile, filename: moduleFilename })
 
