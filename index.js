@@ -25,11 +25,16 @@ const resoveModule = ({ file, moduleFilename }) => {
   if (!moduleFilename) return file
   moduleFilename = moduleFilename[0]
 
-  let moduleFile = readFileSync(moduleFilename, 'utf-8').replace('<?php\n', '')
+  let moduleFile = readFileSync(moduleFilename, 'utf-8')
 
-  moduleFile = indentation({ file: moduleFile, filename: moduleFilename })
+  if (moduleFile.startsWith('<?php')) {
+    moduleFile = moduleFile.replace('<?php\n', '')
+  } else {
+    moduleFile = indentation({ file: moduleFile, filename: moduleFilename })
+  }
 
   moduleFile = closure(moduleFile)
+
   const bundle = file.replace(aModuleExpression, moduleFile)
 
   const anotherModuleFilename = bundle.match(aModuleFilename)
