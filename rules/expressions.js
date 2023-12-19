@@ -6,9 +6,11 @@ module.exports = ({ lines, filename }) => {
     }
 
     if (line.trimStart() !== '' && !line.trimStart().startsWith('#')) {
-      if (!line.includes('function') && ['{', '(', '[', ','].every(lineEnd => !line.endsWith(lineEnd))) {
-        if ([']', ')'].every(nextLineStart => !lines[index + 1].trimStart().startsWith(nextLineStart))) {
-          lines[index] = `${line};`
+      if (!line.includes('function (') && !line.includes('if (')) {
+        if (['{', '(', '[', ','].every(lineEnd => !line.endsWith(lineEnd))) {
+          if ([']', ')'].every(nextLineStart => !lines[index + 1].trimStart().startsWith(nextLineStart))) {
+            lines[index] = `${line};`
+          }
         }
       }
     }

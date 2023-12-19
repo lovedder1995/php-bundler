@@ -8,7 +8,7 @@ const indentation = ({ file, filename }) => {
   require('./rules/comments.js')({ lines, filename })
   require('./rules/end_of_file.js')({ lines, filename })
   require('./rules/expressions.js')({ lines, filename })
-  require('./rules/functions.js')({ lines, filename })
+  require('./rules/closures.js')({ lines, filename })
 
   return lines.join('\n')
 }

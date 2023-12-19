@@ -1,8 +1,6 @@
-const matchFunctionDeclaration = ({ indentationLevel, line, index, filename }) => {
-  if (line.startsWith(indentationLevel) && line.endsWith(')') && line.includes('function')) {
-    if (!line.includes('function (')) {
-      console.log(`${filename} ${index + 1}`, '- There must be a space between the function and the parenthesis')
-    } else {
+const matchClosures = ({ indentationLevel, line, index, filename }) => {
+  if (line.includes('function (') || line.includes('if (') || line.trim() === 'else') {
+    if (line.startsWith(indentationLevel) && line.endsWith(')')) {
       return { index, line }
     }
   }
@@ -25,36 +23,36 @@ module.exports = ({ lines, filename }) => {
   ]
 
   indentation.every(indentationLevel => {
-    lines.reduce((functionDeclaration, line, index) => {
-      if (!functionDeclaration.line) {
-        const matchedFunctionDeclaration = matchFunctionDeclaration({ indentationLevel, line, index, filename })
+    lines.reduce((closureDeclaration, line, index) => {
+      if (!closureDeclaration.line) {
+        const matchedClosureDeclaration = matchClosures({ indentationLevel, line, index, filename })
 
-        if (matchedFunctionDeclaration) {
-          return matchedFunctionDeclaration
+        if (matchedClosureDeclaration) {
+          return matchedClosureDeclaration
         }
       } else {
         if (line === '') {
           const lastLine = lines.length - 1 === index
-          const topLevelFunction = indentationLevel === ''
+          const topLevelClosure = indentationLevel === ''
 
-          if (topLevelFunction) {
+          if (topLevelClosure) {
             if (lastLine) {
-              lines[functionDeclaration.index] = `${functionDeclaration.line} {`
+              lines[closureDeclaration.index] = `${closureDeclaration.line} {`
               lines[index] = '};\n'
             }
           } else {
             const remainingExpressionsInTheScope = !lastLine && lines[index + 1].startsWith(`${indentationLevel} `)
             if (remainingExpressionsInTheScope) {
-              return functionDeclaration
+              return closureDeclaration
             }
 
-            lines[functionDeclaration.index] = `${functionDeclaration.line} {`
-            if (missingClosingParentheses(lines[functionDeclaration.index])) {
+            lines[closureDeclaration.index] = `${closureDeclaration.line} {`
+            if (missingClosingParentheses(lines[closureDeclaration.index])) {
               lines[index - 1] = `${lines[index - 1]}});`
             } else {
               lines[index - 1] = `${lines[index - 1]}};`
             }
-            functionDeclaration = {}
+            closureDeclaration = {}
           }
         } else {
           const topDeclaration = !line.startsWith(' ')
@@ -68,23 +66,23 @@ module.exports = ({ lines, filename }) => {
             const twoBlankLines = linesBefore[0] === '' && linesBefore[1] === '' && linesBefore[2] !== ''
 
             if (!twoBlankLines) {
-              console.log(`${filename} ${index + 1}`, '- There must be two blank lines between each top level function')
+              console.log(`${filename} ${index + 1}`, '- There must be two blank lines between each top level closure')
               return {}
             }
-            lines[functionDeclaration.index] = `${functionDeclaration.line} {`
+            lines[closureDeclaration.index] = `${closureDeclaration.line} {`
             lines[index - 2] = '};'
-            functionDeclaration = {}
+            closureDeclaration = {}
 
-            const matchedFunctionDeclaration = matchFunctionDeclaration({ indentationLevel, line, index, filename })
+            const matchedClosureDeclaration = matchClosures({ indentationLevel, line, index, filename })
 
-            if (matchedFunctionDeclaration) {
-              return matchedFunctionDeclaration
+            if (matchedClosureDeclaration) {
+              return matchedClosureDeclaration
             }
           }
         }
       }
 
-      return functionDeclaration
+      return closureDeclaration
     }, {})
 
     return true
