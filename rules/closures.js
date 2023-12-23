@@ -6,13 +6,6 @@ const matchClosures = ({ indentationLevel, line, index, filename }) => {
   }
 }
 
-const missingClosingParentheses = (line) => {
-  const openingParenthesis = [...line.matchAll(/\(/g)].length
-  const closingParenthesis = [...line.matchAll(/\)/g)].length
-
-  return openingParenthesis - closingParenthesis
-}
-
 module.exports = ({ lines, filename }) => {
   const indentation = [
     '                ',
@@ -38,7 +31,7 @@ module.exports = ({ lines, filename }) => {
           if (topLevelClosure) {
             if (lastLine) {
               lines[closureDeclaration.index] = `${closureDeclaration.line} {`
-              lines[index] = '};\n'
+              lines[index] = '}\n'
             }
           } else {
             const remainingExpressionsInTheScope = !lastLine && lines[index + 1].startsWith(`${indentationLevel} `)
@@ -47,11 +40,7 @@ module.exports = ({ lines, filename }) => {
             }
 
             lines[closureDeclaration.index] = `${closureDeclaration.line} {`
-            if (missingClosingParentheses(lines[closureDeclaration.index])) {
-              lines[index - 1] = `${lines[index - 1]}});`
-            } else {
-              lines[index - 1] = `${lines[index - 1]}};`
-            }
+            lines[index] = `${indentationLevel}}`
             closureDeclaration = {}
           }
         } else {
@@ -70,7 +59,7 @@ module.exports = ({ lines, filename }) => {
               return {}
             }
             lines[closureDeclaration.index] = `${closureDeclaration.line} {`
-            lines[index - 2] = '};'
+            lines[index - 2] = '}'
             closureDeclaration = {}
 
             const matchedClosureDeclaration = matchClosures({ indentationLevel, line, index, filename })

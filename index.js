@@ -7,8 +7,9 @@ const indentation = ({ file, filename }) => {
   require('php-bundler/rules/indentation.js')({ lines, filename })
   require('./rules/comments.js')({ lines, filename })
   require('./rules/end_of_file.js')({ lines, filename })
-  require('./rules/expressions.js')({ lines, filename })
   require('./rules/closures.js')({ lines, filename })
+  require('./rules/expressions.js')({ lines, filename })
+  require('./rules/arrays.js')({ lines, filename })
 
   return lines.join('\n')
 }
@@ -25,7 +26,13 @@ const resoveModule = ({ file, moduleFilename }) => {
   if (!moduleFilename) return file
   moduleFilename = moduleFilename[0]
 
-  let moduleFile = readFileSync(moduleFilename, 'utf-8')
+  let moduleFile
+
+  try {
+    moduleFile = readFileSync(`node_modules/${moduleFilename}/index.php`, 'utf-8')
+  } catch (error) {
+    moduleFile = readFileSync(moduleFilename, 'utf-8')
+  }
 
   if (moduleFile.startsWith('<?php')) {
     moduleFile = moduleFile.replace('<?php\n', '')
@@ -34,6 +41,11 @@ const resoveModule = ({ file, moduleFilename }) => {
   }
 
   moduleFile = closure(moduleFile)
+
+  moduleFile = moduleFile.split('\n').map(line => {
+    if (line === '') return line
+    return `    ${line}`
+  }).join('\n')
 
   const bundle = file.replace(aModuleExpression, moduleFile)
 
