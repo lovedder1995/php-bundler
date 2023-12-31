@@ -1,5 +1,10 @@
 module.exports = ({ lines, filename }) => {
   lines.every((line, index) => {
+    if (line.includes('//') || line.includes('/*')) {
+      console.log(`${filename} ${index + 1}`, '- Comments should only be written with a octothrope')
+      return false
+    }
+
     if (line.includes('#')) {
       if (!line.trimStart().startsWith('#')) {
         console.log(`${filename} ${index + 1}`, '- Comments should be on their own line')
