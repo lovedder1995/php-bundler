@@ -1,12 +1,15 @@
-const { readFileSync, writeFileSync } = require('fs')
+const { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } = require('fs')
+const EventEmitter = require('events')
+
+const eventEmitter = new EventEmitter()
 
 const indentation = ({ file, filename }) => {
   const lines = file.split('\n')
 
   require('./rules/clutter.js')({ lines, filename })
   require('./rules/end_of_file.js')({ lines, filename })
-  require('php-bundler/rules/spaces.js')({ lines, filename })
-  require('php-bundler/rules/indentation.js')({ lines, filename })
+  require('./rules/spaces.js')({ lines, filename })
+  require('./rules/indentation.js')({ lines, filename })
   require('./rules/comments.js')({ lines, filename })
   require('./rules/logical_operators.js')({ lines, filename })
   require('./rules/conditions.js')({ lines, filename })
@@ -36,7 +39,7 @@ const resoveModule = ({ file, moduleFilename }) => {
   let moduleFile
 
   try {
-    moduleFile = readFileSync(`node_modules/${moduleFilename}/index.php`, 'utf-8')
+    moduleFile = readFileSync(`php_modules/${moduleFilename}.php`, 'utf-8')
   } catch (error) {
     moduleFile = readFileSync(moduleFilename, 'utf-8')
   }
@@ -68,9 +71,79 @@ const resoveModule = ({ file, moduleFilename }) => {
   return bundle
 }
 
-const mainFile = readFileSync('index.shp', 'utf-8')
+const handleFile = () => {
+  const mainFile = readFileSync('index.shp', 'utf-8')
 
-let bundle = indentation({ file: mainFile, filename: 'index.shp' })
-bundle = resoveModule({ file: bundle })
+  let bundle = indentation({ file: mainFile, filename: 'index.shp' })
+  bundle = resoveModule({ file: bundle })
 
-writeFileSync('index.php', `<?php\n${bundle}`)
+  writeFileSync('index.php', `<?php\n${bundle}`)
+}
+
+if (!existsSync('modules.shp')) {
+  handleFile()
+}
+
+if (existsSync('modules.shp')) {
+  if (!existsSync('php_modules')) {
+    mkdirSync('php_modules')
+  }
+
+  let needUpdate
+
+  const modulesFile = readFileSync('modules.shp', 'utf-8')
+
+  if (!existsSync('php_modules/modules.shp')) {
+    needUpdate = true
+  }
+
+  if (existsSync('php_modules/modules.shp')) {
+    const installedModules = readFileSync('php_modules/modules.shp', 'utf-8')
+    if (installedModules !== modulesFile) {
+      needUpdate = true
+    }
+  }
+
+  if (!needUpdate) {
+    handleFile()
+  }
+
+  if (needUpdate) {
+    writeFileSync('php_modules/modules.shp', modulesFile)
+    let modules = indentation({ file: modulesFile, filename: 'modules.shp' })
+    modules = eval(`(function () { ${modules} })()`)
+    modules.every(async (module, index) => {
+      let moduleFile = await fetch(module).then(async response => {
+        const text = await response.text()
+        if (response.status === 404) {
+          console.log(text)
+          rmSync('php_modules/modules.shp')
+          return false
+        }
+        return text
+      })
+
+      if (!moduleFile) return false
+
+      moduleFile = moduleFile.replace('<?php', `<?php\n# ${module}`)
+      const moduleParts = module.split('/')
+
+      const vendor = moduleParts[4]
+      const repository = moduleParts[5].split('@')[0]
+
+      if (!existsSync(`php_modules/${vendor}`)) {
+        mkdirSync(`php_modules/${vendor}`)
+      }
+
+      writeFileSync(`php_modules/${vendor}/${repository}.php`, moduleFile)
+
+      if (index === modules.length - 1) {
+        eventEmitter.emit('modulesSaved')
+      }
+
+      return true
+    })
+  }
+}
+
+eventEmitter.on('modulesSaved', handleFile)
