@@ -1,7 +1,14 @@
 const { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } = require('fs')
 const EventEmitter = require('events')
+const chokidar = require('chokidar')
 
 const eventEmitter = new EventEmitter()
+
+const watcher = chokidar.watch('index.shp', {
+  persistent: true
+})
+
+watcher.on('change', () => eventEmitter.emit('compile'))
 
 const indentation = ({ file, filename }) => {
   const lines = file.split('\n')
@@ -42,6 +49,7 @@ const resoveModule = ({ file, moduleFilename }) => {
     moduleFile = readFileSync(`php_modules/${moduleFilename}.php`, 'utf-8')
   } catch (error) {
     moduleFile = readFileSync(moduleFilename, 'utf-8')
+    watcher.add(moduleFilename)
   }
 
   if (moduleFile.startsWith('<?php')) {
@@ -72,6 +80,7 @@ const resoveModule = ({ file, moduleFilename }) => {
 }
 
 const handleFile = () => {
+  console.clear()
   const mainFile = readFileSync('index.shp', 'utf-8')
 
   let bundle = indentation({ file: mainFile, filename: 'index.shp' })
@@ -138,7 +147,7 @@ if (existsSync('modules.shp')) {
       writeFileSync(`php_modules/${vendor}/${repository}.php`, moduleFile)
 
       if (index === modules.length - 1) {
-        eventEmitter.emit('modulesSaved')
+        eventEmitter.emit('compile')
       }
 
       return true
@@ -146,4 +155,5 @@ if (existsSync('modules.shp')) {
   }
 }
 
-eventEmitter.on('modulesSaved', handleFile)
+eventEmitter.on('compile', handleFile)
+eventEmitter.emit('compile')

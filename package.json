@@ -1,8 +1,8 @@
 {
   "name": "php-bundler",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "main": "index.js",
-  "bin": "bin.js",
+  "bin": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lovedder1995/php-bundler.git"
@@ -12,7 +12,7 @@
     "url": "https://github.com/lovedder1995/php-bundler/issues"
   },
   "homepage": "https://github.com/lovedder1995/php-bundler#readme",
-  "devDependencies": {
-    "standard": "^17.1.0"
+  "dependencies": {
+    "chokidar": "^3.5.3"
   }
 }

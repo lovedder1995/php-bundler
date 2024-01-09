@@ -1,3 +1,5 @@
+const matchMultilineString = require('../lib/match_multiline_string.js')
+
 module.exports = ({ lines, filename }) => {
   const indentation = [
     '                ',
@@ -11,21 +13,27 @@ module.exports = ({ lines, filename }) => {
     let scopeAssignments = []
     let assignments = []
     let ignoreFunctionScope = false
+    let multilineString = {}
     lines.every((line, index) => {
+      multilineString = matchMultilineString({ lines, index, filename, multilineString })
+      if (!lines[index].endsWith('<<<STRING') && multilineString.line) {
+        return true
+      }
+
       lines[index] = lines[index].replaceAll('reference_to ', '&$')
 
-      if (!line.startsWith(indentationLevel)) return true
+      if (!lines[index].startsWith(indentationLevel)) return true
 
-      const currentIndentationLevel = line.startsWith(indentationLevel) && !line.startsWith(`${indentationLevel} `)
+      const currentIndentationLevel = lines[index].startsWith(indentationLevel) && !lines[index].startsWith(`${indentationLevel} `)
 
-      if (ignoreFunctionScope && line.startsWith(`${indentationLevel}}`)) {
+      if (ignoreFunctionScope && lines[index].startsWith(`${indentationLevel}}`)) {
         ignoreFunctionScope = false
         return true
       }
 
       if (ignoreFunctionScope) return true
 
-      if (!ignoreFunctionScope && currentIndentationLevel && line.includes('function (')) {
+      if (!ignoreFunctionScope && currentIndentationLevel && lines[index].includes('function (')) {
         ignoreFunctionScope = true
       }
 
@@ -53,13 +61,13 @@ module.exports = ({ lines, filename }) => {
         }
       }
 
-      const assignment = line.split(' : ')
+      const assignment = lines[index].split(' : ')
       if (assignment.length > 1) {
-        lines[index] = line.replace(' : ', ' = ')
+        lines[index] = lines[index].replace(' : ', ' = ')
         assignments = assignments.concat([assignment[0].trimStart()])
       }
 
-      let functionAssignments = line.match(/(?<=function \().*?(?=\))/g)
+      let functionAssignments = lines[index].match(/(?<=function \().*?(?=\))/g)
       if (functionAssignments) {
         functionAssignments = [...functionAssignments][0]
         if ([',', ':', '='].find(character => functionAssignments.includes(character))) {
@@ -72,7 +80,7 @@ module.exports = ({ lines, filename }) => {
         }
       }
 
-      let functionScopeAssignments = line.match(/(?<=use \().*?(?=\))/g)
+      let functionScopeAssignments = lines[index].match(/(?<=use \().*?(?=\))/g)
       if (functionScopeAssignments) {
         functionScopeAssignments = [...functionScopeAssignments][0]
         functionScopeAssignments = functionScopeAssignments.split(', ').map(assignment => {
@@ -83,7 +91,7 @@ module.exports = ({ lines, filename }) => {
 
       assignments.every((assignment) => {
         lines[index] = lines[index].replaceAll(` ${assignment} `, ` $${assignment} `)
-        if (line.startsWith(assignment)) {
+        if (lines[index].startsWith(assignment) && !lines[index].startsWith('$')) {
           lines[index] = lines[index].replaceAll(`${assignment} =`, `$${assignment} =`)
         }
 

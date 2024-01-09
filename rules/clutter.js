@@ -1,19 +1,43 @@
+const matchMultilineString = require('../lib/match_multiline_string.js')
+
 module.exports = ({ lines, filename }) => {
   const clutter = {
     echo: 'print',
-    sizeof: 'count'
+    sizeof: 'array_length',
+    count: 'array_length'
   }
+
+  const aliases = {
+    array_length: 'count'
+  }
+
+  let multilineString = {}
   lines.every((line, index) => {
+    multilineString = matchMultilineString({ lines, index, filename, multilineString })
+    if (multilineString.line) {
+      return true
+    }
     Object.keys(clutter).every(functionToAvoid => {
       if (
-        line.trimStart() === functionToAvoid ||
-        line.trimStart().startsWith(`${functionToAvoid}(`) ||
-        line.includes(` ${functionToAvoid}(`) ||
-        line.includes(`[${functionToAvoid}(`) ||
-        line.includes(`(${functionToAvoid}(`)
+        lines[index].trimStart() === functionToAvoid ||
+        lines[index].trimStart().startsWith(`${functionToAvoid}(`) ||
+        lines[index].includes(` ${functionToAvoid}(`) ||
+        lines[index].includes(`[${functionToAvoid}(`) ||
+        lines[index].includes(`(${functionToAvoid}(`)
       ) {
         console.log(`${filename} ${index + 1}`, `- Use ${clutter[functionToAvoid]}() insted of ${functionToAvoid}()`)
         return false
+      }
+
+      return true
+    })
+
+    Object.keys(aliases).every(functionAlias => {
+      lines[index] = lines[index].replaceAll(`[${functionAlias}(`, `[${aliases[functionAlias]}(`)
+      lines[index] = lines[index].replaceAll(`(${functionAlias}(`, `(${aliases[functionAlias]}(`)
+      lines[index] = lines[index].replaceAll(` ${functionAlias}(`, ` ${aliases[functionAlias]}(`)
+      if (lines[index].endsWith(` ${functionAlias}`)) {
+        lines[index] = lines[index].replaceAll(` ${functionAlias}`, ` ${aliases[functionAlias]}`)
       }
 
       return true

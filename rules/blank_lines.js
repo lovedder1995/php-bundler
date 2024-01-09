@@ -1,6 +1,14 @@
+const matchMultilineString = require('../lib/match_multiline_string.js')
+
 module.exports = ({ lines, filename }) => {
+  let multilineString = {}
   lines.every((line, index) => {
-    if (line === '') {
+    multilineString = matchMultilineString({lines, index, filename, multilineString})
+    if (multilineString.line) {
+      return true
+    }
+
+    if (lines[index] === '') {
       const lineBefore = lines[index - 1]
       const lineAfter = lines[index + 1]
       const lastLine = lines.length - 1 === index
@@ -13,11 +21,12 @@ module.exports = ({ lines, filename }) => {
 
         if (!validBlankLine) {
           if (lineAfter) {
-            if (['[', '{'].filter(lineStart => lineAfter.endsWith(lineStart))[0]) {
+            if (['[', '{', '<<<STRING'].filter(lineStart => lineAfter.endsWith(lineStart))[0]) {
               return true
             }
           }
-          console.log(index + 2, '(output file) - Invalid blank line ')
+          console.log(`${filename} ${index + 1}`, '- Invalid blank line ')
+          return false
         }
       }
     }

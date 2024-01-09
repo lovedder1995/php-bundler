@@ -1,27 +1,29 @@
-const matchClosures = ({ indentationLevel, lines, line, index, filename }) => {
-  const currentIndentationLevel = line.startsWith(indentationLevel) && !line.startsWith(`${indentationLevel} `)
+const matchMultilineString = require('../lib/match_multiline_string.js')
 
-  if (currentIndentationLevel && line.endsWith('{')) {
+const matchClosures = ({ indentationLevel, lines, index, filename }) => {
+  const currentIndentationLevel = lines[index].startsWith(indentationLevel) && !lines[index].startsWith(`${indentationLevel} `)
+
+  if (currentIndentationLevel && lines[index].endsWith('{')) {
     console.log(`${filename} ${index + 1}`, '- Lines should not end with a opening curly bracket')
     return false
   }
 
-  if (line.includes('function ()') || line.includes('function ( )')) {
+  if (lines[index].includes('function ()') || lines[index].includes('function ( )')) {
     console.log(`${filename} ${index + 1}`, '- Functions without arguments must not have parentheses.')
     return false
   }
 
-  if (line.includes('use ()') || line.includes('use ( )')) {
+  if (lines[index].includes('use ()') || lines[index].includes('use ( )')) {
     console.log(`${filename} ${index + 1}`, '- The keyword "use" in functions must not be used without arguments.')
     return false
   }
 
-  if (currentIndentationLevel && line.includes('function use')) {
+  if (currentIndentationLevel && lines[index].includes('function use')) {
     lines[index] = lines[index].replace('function use', 'function () use')
   }
 
-  if (currentIndentationLevel && line.endsWith('function')) {
-    lines[index] = `${line.slice(0, -8)}function ()`
+  if (currentIndentationLevel && lines[index].endsWith('function')) {
+    lines[index] = `${lines[index].slice(0, -8)}function ()`
   }
 
   if (lines[index].includes('function (') || lines[index].includes('if (')) {
@@ -32,13 +34,19 @@ const matchClosures = ({ indentationLevel, lines, line, index, filename }) => {
 }
 
 module.exports = ({ lines, filename }) => {
+  let multilineString = {}
   lines.every((line, index) => {
-    if (line.includes('function(')) {
+    multilineString = matchMultilineString({ lines, index, filename, multilineString })
+    if (multilineString.line) {
+      return true
+    }
+
+    if (lines[index].includes('function(')) {
       console.log(`${filename} ${index + 1}`, '- There must be one space between function and (')
       return false
     }
 
-    if (line.includes('if(')) {
+    if (lines[index].includes('if(')) {
       console.log(`${filename} ${index + 1}`, '- There must be one space between if and (')
       return false
     }
@@ -54,9 +62,15 @@ module.exports = ({ lines, filename }) => {
   ]
 
   indentation.every(indentationLevel => {
+    let multilineString = {}
     lines.reduce((closureDeclaration, line, index) => {
+      multilineString = matchMultilineString({ lines, index, filename, multilineString })
+      if (multilineString.line) {
+        return closureDeclaration
+      }
+
       if (!closureDeclaration.line) {
-        const matchedClosureDeclaration = matchClosures({ indentationLevel, lines, line, index, filename })
+        const matchedClosureDeclaration = matchClosures({ indentationLevel, lines, index, filename })
 
         if (matchedClosureDeclaration) {
           const linesBefore = [
@@ -74,7 +88,7 @@ module.exports = ({ lines, filename }) => {
           return matchedClosureDeclaration
         }
       } else {
-        if (line === '') {
+        if (lines[index] === '') {
           const lastLine = lines.length - 1 === index
           const topLevelClosure = indentationLevel === ''
 
@@ -95,7 +109,7 @@ module.exports = ({ lines, filename }) => {
             closureDeclaration = {}
           }
         } else {
-          const topLevelDeclaration = !line.startsWith(' ')
+          const topLevelDeclaration = !lines[index].startsWith(' ')
           if (topLevelDeclaration) {
             const linesBefore = [
               lines[index - 1],
@@ -114,7 +128,7 @@ module.exports = ({ lines, filename }) => {
             lines[index - 2] = '}'
             closureDeclaration = {}
 
-            const matchedClosureDeclaration = matchClosures({ indentationLevel, lines, line, index, filename })
+            const matchedClosureDeclaration = matchClosures({ indentationLevel, lines, index, filename })
 
             if (matchedClosureDeclaration) {
               return matchedClosureDeclaration
