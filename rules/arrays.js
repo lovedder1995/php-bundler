@@ -51,12 +51,12 @@ module.exports = ({ lines, filename }) => {
               if (item.includes(' : ')) {
                 item = item.split(' : ')[0]
                 if (!lines[index].trimStart().startsWith('}')) {
-                  lines[index] = lines[index].replace(item, `"${item}"`)
+                  lines[index] = lines[index].replace(` ${item} `, ` "${item}" `)
                 }
               }
 
               const startsWithANumber = item.trimStart().match(/^\d/)
-              if (!item.includes(' : ') && !lines[index].trimStart().startsWith('}') && !startsWithANumber) {
+              if (!lines[index].includes(' : ') && !lines[index].trimStart().startsWith('}') && !startsWithANumber) {
                 lines[index] = lines[index].replace(item, `"${item}"`)
               }
             }
