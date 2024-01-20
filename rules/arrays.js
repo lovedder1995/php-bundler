@@ -6,8 +6,9 @@ module.exports = ({ lines, filename }) => {
     ''
   ]
 
-  indentation.every(indentationLevel => {
-    lines.reduce((arrayDeclaration, line, index) => {
+  return indentation.every(indentationLevel => {
+    let arrayDeclaration = {}
+    return lines.every((line, index) => {
       const currentIndentationLevel = lines[index].startsWith(indentationLevel) && !lines[index].startsWith(`${indentationLevel} `)
 
       if (!arrayDeclaration.line && currentIndentationLevel && (lines[index].endsWith('[') || lines[index].endsWith('('))) {
@@ -20,11 +21,12 @@ module.exports = ({ lines, filename }) => {
           if (!lines[index].startsWith(' ')) {
             if (linesBefore[0] !== '' || linesBefore[1] === '') {
               console.log(`${filename} ${index + 1}`, '- There must be one blank line before each top level array')
-              return {}
+              return false
             }
           }
         }
-        return { line: lines[index], index }
+        arrayDeclaration = { line: lines[index], index }
+        return true
       }
 
       if (currentIndentationLevel && arrayDeclaration.line) {
@@ -35,10 +37,11 @@ module.exports = ({ lines, filename }) => {
 
         if (!lines[index].startsWith(' ') && (linesAfter[0] !== '' || linesAfter[1] === '')) {
           console.log(lines[index], `${filename} ${index + 1}`, '- There must be one blank line after each top level array')
-          return {}
+          return false
         }
 
-        return {}
+        arrayDeclaration = {}
+        return true
       }
 
       const arrayItemsScope = lines[index].startsWith(`${indentationLevel}    `) && !lines[index].startsWith(`${indentationLevel}     `)
@@ -71,9 +74,7 @@ module.exports = ({ lines, filename }) => {
         }
       }
 
-      return arrayDeclaration
-    }, {})
-
-    return true
+      return true
+    })
   })
 }

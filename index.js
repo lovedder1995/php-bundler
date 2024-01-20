@@ -4,7 +4,7 @@ const chokidar = require('chokidar')
 
 const eventEmitter = new EventEmitter()
 
-const watcher = chokidar.watch('index.shp', {
+const watcher = chokidar.watch('index.mhp', {
   persistent: true
 })
 
@@ -13,20 +13,24 @@ watcher.on('change', () => eventEmitter.emit('compile'))
 const indentation = ({ file, filename }) => {
   const lines = file.split('\n')
 
-  require('./rules/clutter.js')({ lines, filename })
-  require('./rules/end_of_file.js')({ lines, filename })
-  require('./rules/spaces.js')({ lines, filename })
-  require('./rules/indentation.js')({ lines, filename })
-  require('./rules/comments.js')({ lines, filename })
-  require('./rules/logical_operators.js')({ lines, filename })
-  require('./rules/conditions.js')({ lines, filename })
-  require('./rules/closures.js')({ lines, filename })
-  require('./rules/arrays.js')({ lines, filename })
-  require('./rules/assignments.js')({ lines, filename })
-  require('./rules/expressions.js')({ lines, filename })
-  require('./rules/comparison_operators.js')({ lines, filename })
-  require('./rules/strings.js')({ lines, filename })
-  require('./rules/blank_lines.js')({ lines, filename })
+  const rules = [
+    'clutter',
+    'end_of_file',
+    'spaces',
+    'indentation',
+    'comments',
+    'logical_operators',
+    'conditions',
+    'closures',
+    'arrays',
+    'assignments',
+    'expressions',
+    'comparison_operators',
+    'strings',
+    'blank_lines'
+  ]
+
+  rules.every(rule => require(`./rules/${rule}.js`)({ lines, filename }))
 
   return lines.join('\n')
 }
@@ -63,7 +67,7 @@ const resoveModule = ({ file, moduleFilename }) => {
     return `    ${line}`
   }).join('\n')
 
-  moduleFile = closure(moduleFile)
+  moduleFile = closure(moduleFile.trimEnd())
 
   const bundle = file.replace(aModuleExpression, moduleFile)
 
@@ -81,33 +85,33 @@ const resoveModule = ({ file, moduleFilename }) => {
 
 const handleFile = () => {
   console.clear()
-  const mainFile = readFileSync('index.shp', 'utf-8')
+  const mainFile = readFileSync('index.mhp', 'utf-8')
 
-  let bundle = indentation({ file: mainFile, filename: 'index.shp' })
+  let bundle = indentation({ file: mainFile, filename: 'index.mhp' })
   bundle = resoveModule({ file: bundle })
 
   writeFileSync('index.php', `<?php\n${bundle}`)
 }
 
-if (!existsSync('modules.shp')) {
+if (!existsSync('modules.mhp')) {
   handleFile()
 }
 
-if (existsSync('modules.shp')) {
+if (existsSync('modules.mhp')) {
   if (!existsSync('php_modules')) {
     mkdirSync('php_modules')
   }
 
   let needUpdate
 
-  const modulesFile = readFileSync('modules.shp', 'utf-8')
+  const modulesFile = readFileSync('modules.mhp', 'utf-8')
 
-  if (!existsSync('php_modules/modules.shp')) {
+  if (!existsSync('php_modules/modules.mhp')) {
     needUpdate = true
   }
 
-  if (existsSync('php_modules/modules.shp')) {
-    const installedModules = readFileSync('php_modules/modules.shp', 'utf-8')
+  if (existsSync('php_modules/modules.mhp')) {
+    const installedModules = readFileSync('php_modules/modules.mhp', 'utf-8')
     if (installedModules !== modulesFile) {
       needUpdate = true
     }
@@ -118,15 +122,15 @@ if (existsSync('modules.shp')) {
   }
 
   if (needUpdate) {
-    writeFileSync('php_modules/modules.shp', modulesFile)
-    let modules = indentation({ file: modulesFile, filename: 'modules.shp' })
+    writeFileSync('php_modules/modules.mhp', modulesFile)
+    let modules = indentation({ file: modulesFile, filename: 'modules.mhp' })
     modules = eval(`(function () { ${modules} })()`)
     modules.every(async (module, index) => {
       let moduleFile = await fetch(module).then(async response => {
         const text = await response.text()
         if (response.status === 404) {
           console.log(text)
-          rmSync('php_modules/modules.shp')
+          rmSync('php_modules/modules.mhp')
           return false
         }
         return text

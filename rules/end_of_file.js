@@ -1,11 +1,11 @@
 module.exports = ({ lines, filename }) => {
-  const noBlankLineEnd = lines.slice(-1)[0] !== ''
-  if (noBlankLineEnd) {
+  const endsWithBlankLine = lines.slice(-1)[0] === ''
+  const endsWithTwoBlankLines = lines.slice(-1)[0] === '' && lines.slice(-2)[0] === ''
+
+  if (!endsWithBlankLine || endsWithTwoBlankLines) {
     console.log(filename, '- The file must end with one blank line')
+    return false
   }
 
-  const twoBlankLinesEnd = lines.slice(-1)[0] === '' && lines.slice(-2)[0] === ''
-  if (twoBlankLinesEnd) {
-    console.log(filename, '- The file must end with one blank line')
-  }
+  return true
 }

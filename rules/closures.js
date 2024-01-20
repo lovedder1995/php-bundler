@@ -9,7 +9,7 @@ const matchClosures = ({ indentationLevel, lines, index, filename }) => {
   }
 
   if (lines[index].includes('function ()') || lines[index].includes('function ( )')) {
-    console.log(`${filename} ${index + 1}`, '- Functions without arguments must not have parentheses.')
+    console.log(`${filename} ${index + 1}`, '- Functions without parameters must not have parentheses.')
     return false
   }
 
@@ -37,6 +37,10 @@ module.exports = ({ lines, filename }) => {
   let multilineString = {}
   lines.every((line, index) => {
     multilineString = matchMultilineString({ lines, index, filename, multilineString })
+    if (multilineString.error) {
+      return false
+    }
+
     if (multilineString.line) {
       return true
     }
@@ -61,9 +65,10 @@ module.exports = ({ lines, filename }) => {
     ''
   ]
 
-  indentation.every(indentationLevel => {
+  return indentation.every(indentationLevel => {
     let multilineString = {}
-    lines.reduce((closureDeclaration, line, index) => {
+    let closureDeclaration = {}
+    return lines.every((line, index) => {
       multilineString = matchMultilineString({ lines, index, filename, multilineString })
       if (multilineString.line) {
         return closureDeclaration
@@ -80,12 +85,13 @@ module.exports = ({ lines, filename }) => {
 
           if (linesBefore[0] !== undefined) {
             if ((!linesBefore[0].trimStart().startsWith('}') && linesBefore[0] !== '') || linesBefore[1] === '') {
-              console.log(`${filename} ${index + 1}`, '- There must be one blank line between each closure')
-              return {}
+              console.log(`${filename} ${index + 1}`, '- There must be one blank line before each closure')
+              return false
             }
           }
 
-          return matchedClosureDeclaration
+          closureDeclaration = matchedClosureDeclaration
+          return true
         }
       } else {
         if (lines[index] === '') {
@@ -101,7 +107,7 @@ module.exports = ({ lines, filename }) => {
           } else {
             const remainingExpressionsInTheScope = !lastLine && lines[index + 1].startsWith(`${indentationLevel} `)
             if (remainingExpressionsInTheScope) {
-              return closureDeclaration
+              return true
             }
 
             lines[closureDeclaration.index] = `${closureDeclaration.line} {`
@@ -120,8 +126,8 @@ module.exports = ({ lines, filename }) => {
             const twoBlankLines = linesBefore[0] === '' && linesBefore[1] === '' && linesBefore[2] !== ''
 
             if (!twoBlankLines) {
-              console.log(`${filename} ${index + 1}`, '- There must be two blank lines between each top level closure')
-              return {}
+              console.log(`${filename} ${index + 1}`, '- There must be two blank lines before each top level closure')
+              return false
             }
 
             lines[closureDeclaration.index] = `${closureDeclaration.line} {`
@@ -131,15 +137,13 @@ module.exports = ({ lines, filename }) => {
             const matchedClosureDeclaration = matchClosures({ indentationLevel, lines, index, filename })
 
             if (matchedClosureDeclaration) {
-              return matchedClosureDeclaration
+              closureDeclaration = matchedClosureDeclaration
             }
           }
         }
       }
 
-      return closureDeclaration
-    }, {})
-
-    return true
+      return true
+    })
   })
 }

@@ -7,7 +7,7 @@ module.exports = ({ lines, filename }) => {
     16
   ]
 
-  lines.every((line, index) => {
+  return lines.every((line, index) => {
     const lineIndentation = lines[index].length - lines[index].trimStart().length
     if (lineIndentation > 16) {
       console.log(`${filename} ${index + 1}`, '- Too much nesting, refactoring is needed.')

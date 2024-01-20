@@ -1,5 +1,5 @@
 module.exports = ({ lines, filename }) => {
-  lines.every((line, index) => {
+  return lines.every((line, index) => {
     const tabs = lines[index].replaceAll('\t', '') !== lines[index]
 
     if (tabs) {

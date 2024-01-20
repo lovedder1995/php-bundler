@@ -12,8 +12,12 @@ module.exports = ({ lines, filename }) => {
   }
 
   let multilineString = {}
-  lines.every((line, index) => {
+  return lines.every((line, index) => {
     multilineString = matchMultilineString({ lines, index, filename, multilineString })
+    if (multilineString.error) {
+      return false
+    }
+
     if (multilineString.line) {
       return true
     }
@@ -36,6 +40,9 @@ module.exports = ({ lines, filename }) => {
       lines[index] = lines[index].replaceAll(`[${functionAlias}(`, `[${aliases[functionAlias]}(`)
       lines[index] = lines[index].replaceAll(`(${functionAlias}(`, `(${aliases[functionAlias]}(`)
       lines[index] = lines[index].replaceAll(` ${functionAlias}(`, ` ${aliases[functionAlias]}(`)
+      if (lines[index].trimStart().startsWith(`${functionAlias}(`)) {
+        lines[index] = lines[index].replace(`${functionAlias}(`, `${aliases[functionAlias]}(`)
+      }
       if (lines[index].endsWith(` ${functionAlias}`)) {
         lines[index] = lines[index].replaceAll(` ${functionAlias}`, ` ${aliases[functionAlias]}`)
       }

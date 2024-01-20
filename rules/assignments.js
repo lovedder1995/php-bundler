@@ -1,4 +1,7 @@
 const matchMultilineString = require('../lib/match_multiline_string.js')
+const ignoreStrings = require('../lib/ignore_strings.js')
+const arrayForEach = require('../lib/array_for_each.js')
+const arrayPipe = require('../lib/array_pipe.js')
 
 module.exports = ({ lines, filename }) => {
   const indentation = [
@@ -9,7 +12,7 @@ module.exports = ({ lines, filename }) => {
     ''
   ]
 
-  indentation.every(indentationLevel => {
+  return indentation.every(indentationLevel => {
     let scopeAssignments = []
     let assignments = []
     let ignoreFunctionScope = false
@@ -71,7 +74,7 @@ module.exports = ({ lines, filename }) => {
       if (functionAssignments) {
         functionAssignments = [...functionAssignments][0]
         if ([',', ':', '='].find(character => functionAssignments.includes(character))) {
-          console.log(`${filename} ${index + 1}`, '- Functions must have only one argument and without default value')
+          console.log(`${filename} ${index + 1}`, '- Functions must have only one parameter and without default value')
           return {}
         }
 
@@ -90,7 +93,6 @@ module.exports = ({ lines, filename }) => {
       }
 
       assignments.every((assignment) => {
-        lines[index] = lines[index].replaceAll(` ${assignment} `, ` $${assignment} `)
         if (lines[index].startsWith(assignment) && !lines[index].startsWith('$')) {
           lines[index] = lines[index].replaceAll(`${assignment} =`, `$${assignment} =`)
         }
@@ -99,19 +101,38 @@ module.exports = ({ lines, filename }) => {
           lines[index] = lines[index].replace(`${assignment}(`, `$${assignment}(`)
         }
 
-        lines[index] = lines[index].replaceAll(`...${assignment})`, `...$${assignment})`)
-        lines[index] = lines[index].replaceAll(`(${assignment})`, `($${assignment})`)
-        lines[index] = lines[index].replaceAll(`(${assignment},`, `($${assignment},`)
-        lines[index] = lines[index].replaceAll(`(${assignment}(`, `($${assignment}(`)
-        lines[index] = lines[index].replaceAll(`, ${assignment},`, `, $${assignment},`)
-        lines[index] = lines[index].replaceAll(` ${assignment})`, ` $${assignment})`)
-        lines[index] = lines[index].replaceAll(` ${assignment}(`, ` $${assignment}(`)
-        lines[index] = lines[index].replaceAll(` ${assignment};`, ` $${assignment};`)
-        lines[index] = lines[index].replaceAll(` ${assignment}[`, ` $${assignment}[`)
-        lines[index] = lines[index].replaceAll(`(${assignment}[`, `($${assignment}[`)
-        lines[index] = lines[index].replaceAll(`[${assignment}]`, `[$${assignment}]`)
-        lines[index] = lines[index].replaceAll(`[${assignment} `, `[$${assignment} `)
-        lines[index] = lines[index].replaceAll(` ${assignment},`, ` $${assignment},`)
+        const assignmentsReplacements = [
+          [` ${assignment} `, ` $${assignment} `],
+          [`...${assignment})`, `...$${assignment})`],
+          [`(${assignment})`, `($${assignment})`],
+          [`(${assignment},`, `($${assignment},`],
+          [`(${assignment}(`, `($${assignment}(`],
+          [`, ${assignment},`, `, $${assignment},`],
+          [` ${assignment})`, ` $${assignment})`],
+          [` ${assignment}(`, ` $${assignment}(`],
+          [` ${assignment};`, ` $${assignment};`],
+          [` ${assignment}[`, ` $${assignment}[`],
+          [`(${assignment}[`, `($${assignment}[`],
+          [`[${assignment}]`, `[$${assignment}]`],
+          [`[${assignment} `, `[$${assignment} `],
+          [` ${assignment},`, ` $${assignment},`]
+        ]
+
+        arrayForEach({
+          array: assignmentsReplacements,
+          iteration: element => {
+            const [assignment, replacement] = element
+            lines[index] = arrayPipe([
+              {
+                line: lines[index],
+                transform: line => {
+                  return line.replaceAll(assignment, replacement)
+                }
+              },
+              ignoreStrings
+            ])
+          }
+        })
 
         if (lines[index].trimStart().startsWith(`"${assignment}"`) && !lines[index].includes(' => ')) {
           lines[index] = lines[index].replace(`"${assignment}"`, `$${assignment}`)
