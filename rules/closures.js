@@ -5,24 +5,24 @@ const matchClosures = ({ indentationLevel, lines, index, filename }) => {
 
   if (currentIndentationLevel && lines[index].endsWith('{')) {
     console.log(`${filename} ${index + 1}`, '- Lines should not end with a opening curly bracket')
-    return false
+    return { error: true }
   }
 
   if (lines[index].includes('function ()') || lines[index].includes('function ( )')) {
     console.log(`${filename} ${index + 1}`, '- Functions without parameters must not have parentheses.')
-    return false
+    return { error: true }
   }
 
-  if (lines[index].includes('use ()') || lines[index].includes('use ( )')) {
+  if (lines[index].endsWith(' use') || lines[index].endsWith(' use ()') || lines[index].endsWith(' use ( )')) {
     console.log(`${filename} ${index + 1}`, '- The keyword "use" in functions must not be used without arguments.')
-    return false
+    return { error: true }
   }
 
   if (currentIndentationLevel && lines[index].includes('function use')) {
     lines[index] = lines[index].replace('function use', 'function () use')
   }
 
-  if (currentIndentationLevel && lines[index].endsWith('function')) {
+  if (currentIndentationLevel && lines[index].endsWith(' function')) {
     lines[index] = `${lines[index].slice(0, -8)}function ()`
   }
 
@@ -78,6 +78,10 @@ module.exports = ({ lines, filename }) => {
         const matchedClosureDeclaration = matchClosures({ indentationLevel, lines, index, filename })
 
         if (matchedClosureDeclaration) {
+          if (matchedClosureDeclaration.error) {
+            return false
+          }
+
           const linesBefore = [
             lines[index - 1],
             lines[index - 2]
@@ -137,6 +141,9 @@ module.exports = ({ lines, filename }) => {
             const matchedClosureDeclaration = matchClosures({ indentationLevel, lines, index, filename })
 
             if (matchedClosureDeclaration) {
+              if (matchedClosureDeclaration.error) {
+                return false
+              }
               closureDeclaration = matchedClosureDeclaration
             }
           }
