@@ -1,6 +1,6 @@
 {
   "name": "php-bundler",
-  "version": "2.0.9",
+  "version": "2.1.0",
   "main": "index.js",
   "bin": "index.js",
   "repository": {

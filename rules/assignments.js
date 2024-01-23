@@ -19,6 +19,10 @@ module.exports = ({ lines, filename }) => {
     let multilineString = {}
     lines.every((line, index) => {
       multilineString = matchMultilineString({ lines, index, filename, multilineString })
+      if (multilineString.error) {
+        return false
+      }
+
       if (!lines[index].endsWith('<<<STRING') && multilineString.line) {
         return true
       }
@@ -51,17 +55,60 @@ module.exports = ({ lines, filename }) => {
           scopeAssignments = [...scopeAssignments][0]
 
           if (scopeAssignments !== '') {
+            if (scopeAssignments !== scopeAssignments.trimStart()) {
+              console.log(`${filename} ${index + 1}`, '- Invalid space after opening parentheses.')
+              return false
+            }
+
+            if (scopeAssignments !== scopeAssignments.trimEnd()) {
+              console.log(`${filename} ${index + 1}`, '- Invalid space before closing parentheses.')
+              return false
+            }
+
             assignments = assignments.concat(scopeAssignments.replace('...', ''))
           }
         }
         scopeAssignments = scopeAssignmentsLine.match(/(?<=use \().*?(?=\))/g)
         if (scopeAssignments) {
           scopeAssignments = [...scopeAssignments][0]
-          scopeAssignments = scopeAssignments.split(', ').map(assignment => {
-            return assignment.replace('&$', '')
-          })
-          assignments = assignments.concat(scopeAssignments)
+          if (scopeAssignments !== '') {
+            if (scopeAssignments !== scopeAssignments.trimStart()) {
+              console.log(`${filename} ${index + 1}`, '- Invalid space after opening parentheses.')
+              return false
+            }
+
+            if (scopeAssignments !== scopeAssignments.trimEnd()) {
+              console.log(`${filename} ${index + 1}`, '- Invalid space after closing parentheses.')
+              return false
+            }
+
+            scopeAssignments = scopeAssignments.split(', ').map(assignment => {
+              return assignment.replace('&$', '')
+            })
+            assignments = assignments.concat(scopeAssignments)
+          }
         }
+      }
+
+      let assignmentBadSpacing = false
+
+      arrayPipe([
+        {
+          line: lines[index],
+          transform: line => {
+            if (line.includes(':') && !line.includes(' : ')) {
+              assignmentBadSpacing = true
+            }
+
+            return line
+          }
+        },
+        ignoreStrings
+      ])
+
+      if (assignmentBadSpacing) {
+        console.log(`${filename} ${index + 1}`, '- There must be a space before and after the colon.')
+        return false
       }
 
       const assignment = lines[index].split(' : ')
@@ -75,7 +122,7 @@ module.exports = ({ lines, filename }) => {
         functionAssignments = [...functionAssignments][0]
         if ([',', ':', '='].find(character => functionAssignments.includes(character))) {
           console.log(`${filename} ${index + 1}`, '- Functions must have only one parameter and without default value')
-          return {}
+          return false
         }
 
         if (functionAssignments !== '') {

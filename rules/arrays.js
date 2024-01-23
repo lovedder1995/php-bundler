@@ -51,16 +51,24 @@ module.exports = ({ lines, filename }) => {
           if (!lines[index].trimStart().startsWith('`')) {
             let item = lines[index].trimStart()
             if (!item.startsWith(']')) {
-              if (item.includes(' : ')) {
+              if (lines[index].trimStart().startsWith('"') || lines[index].trimStart().startsWith("'")) {
+                console.log(`${filename} ${index + 1}`, '- Strings must be assigned using backticks (`).')
+                return false
+              }
+              if (item.includes(':')) {
+                if (!item.includes(' : ')) {
+                  console.log(`${filename} ${index + 1}`, '- There must be a space before and after the colon.')
+                  return false
+                }
                 item = item.split(' : ')[0]
                 if (!lines[index].trimStart().startsWith('}')) {
-                  lines[index] = lines[index].replace(` ${item} `, ` "${item}" `)
+                  lines[index] = lines[index].replace(` ${item} `, ` \`${item}\` `)
                 }
               }
 
               const startsWithANumber = item.trimStart().match(/^\d/)
               if (!lines[index].includes(' : ') && !lines[index].trimStart().startsWith('}') && !startsWithANumber) {
-                lines[index] = lines[index].replace(item, `"${item}"`)
+                lines[index] = lines[index].replace(item, `\`${item}\``)
               }
             }
           }
