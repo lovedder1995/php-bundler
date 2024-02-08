@@ -1,5 +1,5 @@
 const matchMultilineString = require('../lib/match_multiline_string.js')
-const arrayPipe = require('../lib/array_pipe.js')
+const arrayCompose = require('../lib/array_compose.js')
 const ignoreStrings = require('../lib/ignore_strings.js')
 
 module.exports = ({ lines, filename }) => {
@@ -16,7 +16,7 @@ module.exports = ({ lines, filename }) => {
 
     let badStringAssignment = false
 
-    arrayPipe([
+    arrayCompose([
       {
         line: lines[index],
         transform: line => {

@@ -77,77 +77,88 @@ module.exports = ({ lines, filename }) => {
       if (!closureDeclaration.line) {
         const matchedClosureDeclaration = matchClosures({ indentationLevel, lines, index, filename })
 
-        if (matchedClosureDeclaration) {
-          if (matchedClosureDeclaration.error) {
-            return false
-          }
-
-          const linesBefore = [
-            lines[index - 1],
-            lines[index - 2]
-          ]
-
-          if (linesBefore[0] !== undefined) {
-            if ((!linesBefore[0].trimStart().startsWith('}') && linesBefore[0] !== '') || linesBefore[1] === '') {
-              console.log(`${filename} ${index + 1}`, '- There must be one blank line before each closure')
-              return false
-            }
-          }
-
-          closureDeclaration = matchedClosureDeclaration
+        if (!matchedClosureDeclaration) {
           return true
         }
-      } else {
-        if (lines[index] === '') {
-          const lastLine = lines.length - 1 === index
-          const topLevelClosure = indentationLevel === ''
 
-          if (topLevelClosure) {
-            if (lastLine) {
-              lines[closureDeclaration.index] = `${closureDeclaration.line} {`
-              lines[index] = '}'
-              lines[index + 1] = ''
-            }
-          } else {
-            const remainingExpressionsInTheScope = !lastLine && lines[index + 1].startsWith(`${indentationLevel} `)
-            if (remainingExpressionsInTheScope) {
-              return true
-            }
+        if (matchedClosureDeclaration.error) {
+          return false
+        }
 
-            lines[closureDeclaration.index] = `${closureDeclaration.line} {`
-            lines[index] = `${indentationLevel}}`
-            closureDeclaration = {}
-          }
-        } else {
-          const topLevelDeclaration = !lines[index].startsWith(' ')
-          if (topLevelDeclaration) {
-            const linesBefore = [
-              lines[index - 1],
-              lines[index - 2],
-              lines[index - 3]
-            ]
+        const linesBefore = [
+          lines[index - 1],
+          lines[index - 2]
+        ]
 
-            const twoBlankLines = linesBefore[0] === '' && linesBefore[1] === '' && linesBefore[2] !== ''
-
-            if (!twoBlankLines) {
-              console.log(`${filename} ${index + 1}`, '- There must be two blank lines before each top level closure')
-              return false
-            }
-
-            lines[closureDeclaration.index] = `${closureDeclaration.line} {`
-            lines[index - 2] = '}'
-            closureDeclaration = {}
-
-            const matchedClosureDeclaration = matchClosures({ indentationLevel, lines, index, filename })
-
-            if (matchedClosureDeclaration) {
-              if (matchedClosureDeclaration.error) {
-                return false
-              }
-              closureDeclaration = matchedClosureDeclaration
-            }
+        const firstLine = linesBefore[0] === undefined
+        if (!firstLine) {
+          if ((!linesBefore[0].trimStart().startsWith('}') && linesBefore[0] !== '') || linesBefore[1] === '') {
+            console.log(`${filename} ${index + 1}`, '- There must be one blank line before each closure')
+            return false
           }
         }
+
+        closureDeclaration = matchedClosureDeclaration
+
+        return true
+      }
+
+      if (lines[index] === '') {
+        const lastLine = lines.length - 1 === index
+        const topLevelClosure = indentationLevel === ''
+
+        if (topLevelClosure) {
+          if (lastLine) {
+            lines[closureDeclaration.index] = `${closureDeclaration.line} {`
+            lines[index] = '}'
+            lines[index + 1] = ''
+          }
+
+          return true
+        }
+
+        const remainingExpressionsInTheScope = !lastLine && lines[index + 1].startsWith(`${indentationLevel} `)
+        if (remainingExpressionsInTheScope) {
+          return true
+        }
+
+        lines[closureDeclaration.index] = `${closureDeclaration.line} {`
+        lines[index] = `${indentationLevel}}`
+        closureDeclaration = {}
+
+        return true
+      }
+
+      const topLevelDeclaration = !lines[index].startsWith(' ')
+      if (topLevelDeclaration) {
+        const linesBefore = [
+          lines[index - 1],
+          lines[index - 2],
+          lines[index - 3]
+        ]
+
+        const twoBlankLines = linesBefore[0] === '' && linesBefore[1] === '' && linesBefore[2] !== ''
+
+        if (!twoBlankLines) {
+          console.log(`${filename} ${index + 1}`, '- There must be two blank lines before each top level closure')
+          return false
+        }
+
+        lines[closureDeclaration.index] = `${closureDeclaration.line} {`
+        lines[index - 2] = '}'
+        closureDeclaration = {}
+
+        const matchedClosureDeclaration = matchClosures({ indentationLevel, lines, index, filename })
+
+        if (!matchedClosureDeclaration) {
+          return true
+        }
+
+        if (matchedClosureDeclaration.error) {
+          return false
+        }
+
+        closureDeclaration = matchedClosureDeclaration
       }
 
       return true

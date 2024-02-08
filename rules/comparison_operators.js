@@ -1,6 +1,6 @@
 const matchMultilineString = require('../lib/match_multiline_string.js')
 const ignoreStrings = require('../lib/ignore_strings.js')
-const arrayPipe = require('../lib/array_pipe.js')
+const arrayCompose = require('../lib/array_compose.js')
 const arrayForEach = require('../lib/array_for_each.js')
 
 module.exports = ({ lines, filename }) => {
@@ -24,11 +24,11 @@ module.exports = ({ lines, filename }) => {
       'is_greater_than_or_equal_to ': '>= '
     }
 
-    arrayPipe([
+    arrayCompose([
       {
         array: Object.keys(operatorsReplacements),
         iteration: operator => {
-          lines[index] = arrayPipe([
+          lines[index] = arrayCompose([
             {
               line: lines[index],
               transform: line => line.replaceAll(operator, operatorsReplacements[operator])

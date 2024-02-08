@@ -1,7 +1,7 @@
 const matchMultilineString = require('../lib/match_multiline_string.js')
 const ignoreStrings = require('../lib/ignore_strings.js')
 const arrayForEach = require('../lib/array_for_each.js')
-const arrayPipe = require('../lib/array_pipe.js')
+const arrayCompose = require('../lib/array_compose.js')
 
 module.exports = ({ lines, filename }) => {
   const indentation = [
@@ -92,7 +92,7 @@ module.exports = ({ lines, filename }) => {
 
       let assignmentBadSpacing = false
 
-      arrayPipe([
+      arrayCompose([
         {
           line: lines[index],
           transform: line => {
@@ -169,7 +169,7 @@ module.exports = ({ lines, filename }) => {
           array: assignmentsReplacements,
           iteration: element => {
             const [assignment, replacement] = element
-            lines[index] = arrayPipe([
+            lines[index] = arrayCompose([
               {
                 line: lines[index],
                 transform: line => {
