@@ -1,5 +1,5 @@
-const matchMultilineString = require('../lib/match_multiline_string.js')
-const ignoreStrings = require('../lib/ignore_strings.js')
+const matchMultilineText = require('php-bundler/lib/match_multiline_text.js')
+const ignoreText = require('php-bundler/lib/ignore_text.js')
 const arrayForEach = require('../lib/array_for_each.js')
 const arrayCompose = require('../lib/array_compose.js')
 
@@ -18,7 +18,7 @@ module.exports = ({ lines, filename }) => {
     let ignoreFunctionScope = false
     let multilineString = {}
     lines.every((line, index) => {
-      multilineString = matchMultilineString({ lines, index, filename, multilineString })
+      multilineString = matchMultilineText({ lines, index, filename, multilineString })
       if (multilineString.error) {
         return false
       }
@@ -55,16 +55,6 @@ module.exports = ({ lines, filename }) => {
           scopeAssignments = [...scopeAssignments][0]
 
           if (scopeAssignments !== '') {
-            if (scopeAssignments !== scopeAssignments.trimStart()) {
-              console.log(`${filename} ${index + 1}`, '- Invalid space after opening parentheses.')
-              return false
-            }
-
-            if (scopeAssignments !== scopeAssignments.trimEnd()) {
-              console.log(`${filename} ${index + 1}`, '- Invalid space before closing parentheses.')
-              return false
-            }
-
             assignments = assignments.concat(scopeAssignments.replace('...', ''))
           }
         }
@@ -72,16 +62,6 @@ module.exports = ({ lines, filename }) => {
         if (scopeAssignments) {
           scopeAssignments = [...scopeAssignments][0]
           if (scopeAssignments !== '') {
-            if (scopeAssignments !== scopeAssignments.trimStart()) {
-              console.log(`${filename} ${index + 1}`, '- Invalid space after opening parentheses.')
-              return false
-            }
-
-            if (scopeAssignments !== scopeAssignments.trimEnd()) {
-              console.log(`${filename} ${index + 1}`, '- Invalid space after closing parentheses.')
-              return false
-            }
-
             scopeAssignments = scopeAssignments.split(', ').map(assignment => {
               return assignment.replace('&$', '')
             })
@@ -94,7 +74,7 @@ module.exports = ({ lines, filename }) => {
 
       arrayCompose([
         {
-          line: lines[index],
+          text: lines[index],
           transform: line => {
             if (line.includes(':') && !line.includes(' : ')) {
               assignmentBadSpacing = true
@@ -103,7 +83,7 @@ module.exports = ({ lines, filename }) => {
             return line
           }
         },
-        ignoreStrings
+        ignoreText
       ])
 
       if (assignmentBadSpacing) {
@@ -171,12 +151,12 @@ module.exports = ({ lines, filename }) => {
             const [assignment, replacement] = element
             lines[index] = arrayCompose([
               {
-                line: lines[index],
+                text: lines[index],
                 transform: line => {
                   return line.replaceAll(assignment, replacement)
                 }
               },
-              ignoreStrings
+              ignoreText
             ])
           }
         })

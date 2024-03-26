@@ -1,9 +1,9 @@
-const matchMultilineString = require('../lib/match_multiline_string.js')
+const matchMultilineText = require('../lib/match_multiline_text.js')
 
 module.exports = ({ lines, filename }) => {
   let multilineString = {}
   return lines.every((line, index) => {
-    multilineString = matchMultilineString({ lines, index, filename, multilineString })
+    multilineString = matchMultilineText({ lines, index, filename, multilineString })
     if (multilineString.error) {
       return false
     }

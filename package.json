@@ -1,6 +1,6 @@
 {
   "name": "php-bundler",
-  "version": "2024.01.1",
+  "version": "2024.03.1",
   "main": "index.js",
   "bin": "index.js",
   "repository": {
@@ -13,6 +13,7 @@
   },
   "homepage": "https://github.com/lovedder1995/php-bundler#readme",
   "dependencies": {
-    "chokidar": "^3.5.3"
+    "chokidar": "^3.5.3",
+    "php-array-reader": "^2.1.1"
   }
 }

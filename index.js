@@ -1,6 +1,7 @@
 const { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } = require('fs')
 const EventEmitter = require('events')
 const chokidar = require('chokidar')
+const phpArrayReader = require('php-array-reader')
 
 const eventEmitter = new EventEmitter()
 
@@ -10,13 +11,13 @@ const watcher = chokidar.watch('index.mhp', {
 
 watcher.on('change', () => eventEmitter.emit('compile'))
 
-const indentation = ({ file, filename }) => {
+const compile = ({ file, filename }) => {
   const lines = file.split('\n')
 
   const rules = [
     'clutter',
     'end_of_file',
-    'spaces',
+    'spacing',
     'indentation',
     'comments',
     'logical_operators',
@@ -26,21 +27,29 @@ const indentation = ({ file, filename }) => {
     'assignments',
     'expressions',
     'comparison_operators',
-    'strings',
+    'text',
     'blank_lines'
   ]
 
-  rules.every(rule => require(`./rules/${rule}.js`)({ lines, filename }))
+  const compiled = rules.every(rule => require(`./rules/${rule}.js`)({ lines, filename }))
 
-  return lines.join('\n')
+  if (!compiled) {
+    return { error: true }
+  }
+
+  return { compiled: lines.join('\n') }
 }
 
 const aModuleFilename = /(?<=module\(")(.*?)(?="\))/
 const aModuleExpression = /module\("(.*?)"\)/
 
-const closure = code => `(function () {
+const closure = parameters => {
+  const { name, code } = parameters
+
+  return `define("${name}", function () {
 ${code}
-})()`
+})`
+}
 
 const resoveModule = ({ file, moduleFilename }) => {
   if (!moduleFilename) moduleFilename = file.match(aModuleFilename)
@@ -59,17 +68,28 @@ const resoveModule = ({ file, moduleFilename }) => {
   if (moduleFile.startsWith('<?php')) {
     moduleFile = moduleFile.replace('<?php\n', '')
   } else {
-    moduleFile = indentation({ file: moduleFile, filename: moduleFilename })
+    moduleFile = compile({ file: moduleFile, filename: moduleFilename })
+    if (moduleFile.error) {
+      return
+    }
+
+    moduleFile = moduleFile.compiled
   }
 
-  moduleFile = moduleFile.split('\n').map(line => {
-    if (line === '') return line
-    return `    ${line}`
-  }).join('\n')
+  moduleFile = moduleFile.split('\n').map(line => line).join('\n')
 
-  moduleFile = closure(moduleFile.trimEnd())
+  moduleFile = closure({
+    name: moduleFilename,
+    code: moduleFile.trimEnd()
+  })
 
-  const bundle = file.replace(aModuleExpression, moduleFile)
+  let bundle = file.replace(aModuleExpression, `constant("${moduleFilename}")()`)
+  if (!bundle.includes('# </php-modules>\n')) {
+    bundle = `\n# <php-modules>\n\n# </php-modules>\n\n${bundle}`
+  }
+  if (!bundle.includes(moduleFile)) {
+    bundle = bundle.replace('# </php-modules>\n', `${moduleFile};\n\n# </php-modules>\n`)
+  }
 
   const anotherModuleFilename = bundle.match(aModuleFilename)
 
@@ -86,33 +106,40 @@ const resoveModule = ({ file, moduleFilename }) => {
 const handleFile = () => {
   console.clear()
   const mainFile = readFileSync('index.mhp', 'utf-8')
+  if (mainFile === '') {
+    return
+  }
 
-  let bundle = indentation({ file: mainFile, filename: 'index.mhp' })
-  bundle = resoveModule({ file: bundle })
+  let bundle = compile({ file: mainFile, filename: 'index.mhp' })
+  if (bundle.error) {
+    return
+  }
+
+  bundle = resoveModule({ file: bundle.compiled })
 
   writeFileSync('index.php', `<?php\n${bundle}`)
 }
 
-if (!existsSync('modules.mhp')) {
+if (!existsSync('manifest.mhp')) {
   handleFile()
 }
 
-if (existsSync('modules.mhp')) {
+if (existsSync('manifest.mhp')) {
   if (!existsSync('php_modules')) {
     mkdirSync('php_modules')
   }
 
   let needUpdate
 
-  const modulesFile = readFileSync('modules.mhp', 'utf-8')
+  const manifestFile = readFileSync('manifest.mhp', 'utf-8')
 
-  if (!existsSync('php_modules/modules.mhp')) {
+  if (!existsSync('php_modules/manifest.mhp')) {
     needUpdate = true
   }
 
-  if (existsSync('php_modules/modules.mhp')) {
-    const installedModules = readFileSync('php_modules/modules.mhp', 'utf-8')
-    if (installedModules !== modulesFile) {
+  if (existsSync('php_modules/manifest.mhp')) {
+    const installedModules = readFileSync('php_modules/manifest.mhp', 'utf-8')
+    if (installedModules !== manifestFile) {
       needUpdate = true
     }
   }
@@ -122,15 +149,19 @@ if (existsSync('modules.mhp')) {
   }
 
   if (needUpdate) {
-    writeFileSync('php_modules/modules.mhp', modulesFile)
-    let modules = indentation({ file: modulesFile, filename: 'modules.mhp' })
-    modules = eval(`(function () { ${modules} })()`)
+    writeFileSync('php_modules/manifest.mhp', manifestFile)
+    let manifest = compile({ file: manifestFile, filename: 'manifest.mhp' })
+    if (manifest.error) {
+      throw Error(manifest.error)
+    }
+    manifest = phpArrayReader.fromString(manifest.compiled.replace('return ', ''))
+    const modules = manifest.modules
     modules.every(async (module, index) => {
       let moduleFile = await fetch(module).then(async response => {
         const text = await response.text()
         if (response.status === 404) {
           console.log(text)
-          rmSync('php_modules/modules.mhp')
+          rmSync('php_modules/manifest.mhp')
           return false
         }
         return text

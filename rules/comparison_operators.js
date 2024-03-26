@@ -1,12 +1,12 @@
-const matchMultilineString = require('../lib/match_multiline_string.js')
-const ignoreStrings = require('../lib/ignore_strings.js')
+const matchMultilineText = require('../lib/match_multiline_text.js')
+const ignoreText = require('../lib/ignore_text.js')
 const arrayCompose = require('../lib/array_compose.js')
 const arrayForEach = require('../lib/array_for_each.js')
 
 module.exports = ({ lines, filename }) => {
   let multilineString = {}
   return lines.every((line, index) => {
-    multilineString = matchMultilineString({ lines, index, filename, multilineString })
+    multilineString = matchMultilineText({ lines, index, filename, multilineString })
     if (multilineString.error) {
       return false
     }
@@ -30,10 +30,10 @@ module.exports = ({ lines, filename }) => {
         iteration: operator => {
           lines[index] = arrayCompose([
             {
-              line: lines[index],
+              text: lines[index],
               transform: line => line.replaceAll(operator, operatorsReplacements[operator])
             },
-            ignoreStrings
+            ignoreText
           ])
         }
       },

@@ -1,10 +1,10 @@
-const matchMultilineString = require('../lib/match_multiline_string.js')
+const matchMultilineText = require('../lib/match_multiline_text.js')
 
 const matchClosures = ({ indentationLevel, lines, index, filename }) => {
   const currentIndentationLevel = lines[index].startsWith(indentationLevel) && !lines[index].startsWith(`${indentationLevel} `)
 
   if (currentIndentationLevel && lines[index].endsWith('{')) {
-    console.log(`${filename} ${index + 1}`, '- Lines should not end with a opening curly bracket')
+    console.log(`${filename} ${index + 1}`, '- Lines should not end with an opening curly bracket')
     return { error: true }
   }
 
@@ -34,30 +34,6 @@ const matchClosures = ({ indentationLevel, lines, index, filename }) => {
 }
 
 module.exports = ({ lines, filename }) => {
-  let multilineString = {}
-  lines.every((line, index) => {
-    multilineString = matchMultilineString({ lines, index, filename, multilineString })
-    if (multilineString.error) {
-      return false
-    }
-
-    if (multilineString.line) {
-      return true
-    }
-
-    if (lines[index].includes('function(')) {
-      console.log(`${filename} ${index + 1}`, '- There must be one space between function and (')
-      return false
-    }
-
-    if (lines[index].includes('if(')) {
-      console.log(`${filename} ${index + 1}`, '- There must be one space between if and (')
-      return false
-    }
-
-    return true
-  })
-
   const indentation = [
     '            ',
     '        ',
@@ -69,9 +45,23 @@ module.exports = ({ lines, filename }) => {
     let multilineString = {}
     let closureDeclaration = {}
     return lines.every((line, index) => {
-      multilineString = matchMultilineString({ lines, index, filename, multilineString })
+      multilineString = matchMultilineText({ lines, index, filename, multilineString })
+      if (multilineString.error) {
+        return false
+      }
+
       if (multilineString.line) {
-        return closureDeclaration
+        return true
+      }
+
+      if (lines[index].includes('function(')) {
+        console.log(`${filename} ${index + 1}`, '- There must be one space between function and (')
+        return false
+      }
+
+      if (lines[index].includes('if(')) {
+        console.log(`${filename} ${index + 1}`, '- There must be one space between if and (')
+        return false
       }
 
       if (!closureDeclaration.line) {
@@ -140,7 +130,7 @@ module.exports = ({ lines, filename }) => {
         const twoBlankLines = linesBefore[0] === '' && linesBefore[1] === '' && linesBefore[2] !== ''
 
         if (!twoBlankLines) {
-          console.log(`${filename} ${index + 1}`, '- There must be two blank lines before each top level closure')
+          console.log(`${filename} ${index + 1}`, '- There must be two blank lines after each top level closure')
           return false
         }
 
